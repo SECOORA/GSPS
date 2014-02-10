@@ -21,27 +21,47 @@ from threading import Timer
 import logging
 logger = logging.getLogger("GSPS")
 
+import zmq
+from datetime import datetime
+
 
 class GliderFileProcessor(ProcessEvent):
     def __init__(self, timeout=600):
         ProcessEvent.__init__(self)
         self.files = []
-        self.timer = None
         self.timeout = timeout
+        self.timer = None
+
+        # Create ZMQ context and socket for publishing files
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.PUB)
+        self.socket.bind("tcp://*:8008")
+
+    def stop(self):
+        if self.timer is not None:
+            self.timer.cancel()
+        self.publish_files()
 
     def publish_files(self):
         logger.info("Publishing files via ZMQ")
-
+        self.socket.send(datetime.utcnow().isoformat())
         self.files = []
 
     def set_timer(self, event):
-        if event.name[0] is not '.':
-            full_path = event.pathname + event.name
+        if len(event.name) > 0 and event.name[0] is not '.':
+            full_path = "%s/%s" % (event.pathname, event.name)
             self.files.append(full_path)
+            logger.info("File %s closed" % full_path)
 
             if self.timer is not None:
                 self.timer.cancel()
-                self.timer = Timer(self.timeout, self.publish_files)
+
+            self.timer = Timer(self.timeout, self.publish_files)
+            self.timer.start()
+
+            logger.info(
+                "Setting timer to timeout in %d minutes" % (self.timeout/60)
+            )
 
     def process_IN_CLOSE_WRITE(self, event):
         self.set_timer(event)

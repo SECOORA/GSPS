@@ -23,10 +23,10 @@ from pyinotify import (
     WatchManager,
     Notifier,
     NotifierError,
-    EventsCodes
+    IN_CLOSE_WRITE
 )
 
-from gsps.processor import GliderFileProcessor
+from processor import GliderFileProcessor
 
 
 def main():
@@ -44,24 +44,29 @@ def main():
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s - %(name)s "
                                   "- %(levelname)s - %(message)s")
-    handler = logging.FileHandler('/var/log/gmi/gmi.log')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    log_handler = logging.FileHandler('/var/log/gsps/gsps.log')
+    log_handler.setFormatter(formatter)
+    logger.addHandler(log_handler)
 
     wm = WatchManager()
-    mask = EventsCodes.IN_CLOSE_WRITE
-    wm.add_watch(args.glider_directory_path, mask, rec=True)
+    mask = IN_CLOSE_WRITE
+    wdd = wm.add_watch(args.glider_directory_path, mask,
+                       rec=True, auto_add=True)
 
-    notifier = Notifier(wm, GliderFileProcessor())
+    processor = GliderFileProcessor(10)
+    notifier = Notifier(wm, processor)
 
     def handler(signum, frame):
-        notifier.close()
+        wm.rm_watch(wdd.values())
+        processor.stop()
+        notifier.stop()
+
     signal.signal(signal.SIGTERM, handler)
 
-    pid_file = '/var/run/gsps.pid'
+    pid_file = '/var/run/gsps/gsps.pid'
     try:
         logger.info("Starting")
-        notifier.loop(daemonize=True, pid_file=pid_file)
+        notifier.loop(daemonize=False, pid_file=pid_file)
     except NotifierError, err:
         logger.error('Unable to start notifier loop: %s' % err)
         return 0
