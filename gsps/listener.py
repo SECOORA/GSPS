@@ -38,13 +38,35 @@ def main():
         "glider_directory_path",
         help="Path to configuration file"
     )
+    parser.add_argument(
+        "--timeout",
+        help="Timeout to wait before publishing glider dataset in seconds",
+        type=int,
+        default=600
+    )
+    parser.add_argument(
+        "--daemonize",
+        help="To daemonize or not to daemonize",
+        type=bool,
+        default=False
+    )
+    parser.add_argument(
+        "--pid_file",
+        help="Where to look for and put the PID file",
+        default="./gsps.pid"
+    )
+    parser.add_argument(
+        "--log_file",
+        help="Full path of file to log to",
+        default="./gsps.log"
+    )
     args = parser.parse_args()
 
     # Setup logger
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s - %(name)s "
                                   "- %(levelname)s - %(message)s")
-    log_handler = logging.FileHandler('/var/log/gsps/gsps.log')
+    log_handler = logging.FileHandler(args.log_file)
     log_handler.setFormatter(formatter)
     logger.addHandler(log_handler)
 
@@ -53,7 +75,7 @@ def main():
     wdd = wm.add_watch(args.glider_directory_path, mask,
                        rec=True, auto_add=True)
 
-    processor = GliderFileProcessor(10)
+    processor = GliderFileProcessor(args.timeout)
     notifier = Notifier(wm, processor)
 
     def handler(signum, frame):
@@ -63,10 +85,9 @@ def main():
 
     signal.signal(signal.SIGTERM, handler)
 
-    pid_file = '/var/run/gsps/gsps.pid'
     try:
         logger.info("Starting")
-        notifier.loop(daemonize=False, pid_file=pid_file)
+        notifier.loop(daemonize=args.daemonize, pid_file=args.pid_file)
     except NotifierError, err:
         logger.error('Unable to start notifier loop: %s' % err)
         return 0
