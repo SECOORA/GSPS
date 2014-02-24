@@ -7,7 +7,6 @@ setup(
     author_email='mlindemu@usf.edu',
     packages=['gsps'],
     scripts=[
-        'gsps/listener.py',
-        'gsps/processor.py'
+        'gsps/gsps.py',
     ]
 )

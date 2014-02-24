@@ -39,10 +39,10 @@ def main():
         help="Path to configuration file"
     )
     parser.add_argument(
-        "--timeout",
-        help="Timeout to wait before publishing glider dataset in seconds",
+        "--zmq_port",
+        help="Port to publish ZMQ messages on.  8008 by default.",
         type=int,
-        default=600
+        default=8008
     )
     parser.add_argument(
         "--daemonize",
@@ -70,12 +70,16 @@ def main():
     log_handler.setFormatter(formatter)
     logger.addHandler(log_handler)
 
+    monitor_path = args.glider_directory_path
+    if monitor_path[-1] == '/':
+        monitor_path = monitor_path[:-1]
+
     wm = WatchManager()
     mask = IN_CLOSE_WRITE
     wdd = wm.add_watch(args.glider_directory_path, mask,
                        rec=True, auto_add=True)
 
-    processor = GliderFileProcessor(args.timeout)
+    processor = GliderFileProcessor(args.zmq_port)
     notifier = Notifier(wm, processor)
 
     def handler(signum, frame):
