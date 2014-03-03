@@ -8,13 +8,13 @@ Basic usage:
 
 ```
 git clone https://github.com/USF-COT/GSPS.git
-python gsps/listener.py <path to from-glider directory>
+python gsps/gsps.py <path to from-glider directory>
 ```
 
 For usage options type:
 
 ```
-python gsps/listener.py -h
+python gsps/gsps.py -h
 ```
 
 # Dependencies
