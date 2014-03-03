@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Monitors a glider directory for changes.
 # When a change occurs, it is published to a ZMQ queue.
 # The format of these ZMQ mulit-part messages is as follows:
@@ -26,7 +28,7 @@ from pyinotify import (
     IN_CLOSE_WRITE
 )
 
-from processor import GliderFileProcessor
+from glider_singleton_publishing_service.processor import GliderFileProcessor
 
 
 def main():

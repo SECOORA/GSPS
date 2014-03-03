@@ -5,8 +5,8 @@ setup(
     version='1.0',
     author='Michael Lindemuth',
     author_email='mlindemu@usf.edu',
-    packages=['gsps'],
+    packages=['glider_singleton_publishing_service'],
     scripts=[
-        'gsps/gsps.py',
+        'glider_singleton_publishing_service/gsps.py',
     ]
 )
