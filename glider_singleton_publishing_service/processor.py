@@ -39,27 +39,21 @@ class GliderFileProcessor(ProcessEvent):
         self.port = port
 
     def publish_segment_pair(self, glider, path, file_base, pair):
-        logger.info("Publishing files via ZMQ")
-
         # Create ZMQ context and socket for publishing files
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
         socket.bind("tcp://*:%d" % self.port)
 
-        logger.info("%s, %s, %s, %s" % (glider, path, file_base, pair))
+        segment_id = int(file_base[file_base.rfind('-'):file_base.find('.')])
+
+        logger.info(
+            "Publishing glider %s segment %d data in %s named %s pair %s"
+            % (glider, segment_id, path, file_base, pair)
+        )
 
         set_timestamp = datetime.utcnow()
         flight_file = file_base + pair[0]
         science_file = file_base + pair[1]
-        socket.send_json({
-            'message_type': 'set_start',
-            'start': set_timestamp.isoformat(),
-            'flight_type': pair[0],
-            'flight_file': flight_file,
-            'science_file': science_file,
-            'science_type': pair[1],
-            'glider': glider
-        })
 
         flight_reader = GliderBDReader(
             path,
@@ -74,6 +68,19 @@ class GliderFileProcessor(ProcessEvent):
         merged_reader = MergedGliderBDReader(
             flight_reader, science_reader
         )
+
+        socket.send_json({
+            'message_type': 'set_start',
+            'start': set_timestamp.isoformat(),
+            'flight_type': pair[0],
+            'flight_file': flight_file,
+            'science_file': science_file,
+            'science_type': pair[1],
+            'glider': glider,
+            'segment': segment_id,
+            'headers': merged_reader.headers
+        })
+
         for value in merged_reader:
             socket.send_json({
                 'message_type': 'set_data',
@@ -92,8 +99,6 @@ class GliderFileProcessor(ProcessEvent):
 
     def check_for_pair(self, event):
         if len(event.name) > 0 and event.name[0] is not '.':
-            logger.info("File %s closed" % event.pathname)
-
             # Add full path to glider data queue
             glider_name = event.path[event.path.rfind('/')+1:]
             if glider_name not in self.glider_data:
