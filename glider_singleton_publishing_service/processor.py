@@ -44,7 +44,7 @@ class GliderFileProcessor(ProcessEvent):
         socket = context.socket(zmq.PUB)
         socket.bind("tcp://*:%d" % self.port)
 
-        segment_id = int(file_base[file_base.rfind('-'):file_base.find('.')])
+        segment_id = int(file_base[file_base.rfind('-')+1:file_base.find('.')])
 
         logger.info(
             "Publishing glider %s segment %d data in %s named %s pair %s"
