@@ -96,10 +96,10 @@ def main():
         notifier.loop(daemonize=args.daemonize, pid_file=args.pid_file)
     except NotifierError, err:
         logger.error('Unable to start notifier loop: %s' % err)
-        return 0
+        return 1
 
     logger.info("Glider System Publication Service Exited Successfully")
-    return 1
+    return 0
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -36,37 +36,29 @@ class GliderFileProcessor(ProcessEvent):
         ProcessEvent.__init__(self)
         self.glider_data = {}
 
-        # Create ZMQ context and socket for publishing files
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.PUB)
-        self.socket.bind("tcp://*:%d" % port)
+        self.port = port
 
     def publish_segment_pair(self, glider, path, file_base, pair):
         logger.info("Publishing files via ZMQ")
 
+        # Create ZMQ context and socket for publishing files
+        context = zmq.Context()
+        socket = context.socket(zmq.PUB)
+        socket.bind("tcp://*:%d" % self.port)
+
+        logger.info("%s, %s, %s, %s" % (glider, path, file_base, pair))
+
         set_timestamp = datetime.utcnow()
-        self.socket.send_json({
+        flight_file = file_base + pair[0]
+        science_file = file_base + pair[1]
+        socket.send_json({
             'message_type': 'set_start',
             'start': set_timestamp.isoformat(),
             'flight_type': pair[0],
+            'flight_file': flight_file,
+            'science_file': science_file,
             'science_type': pair[1],
             'glider': glider
-        })
-
-        flight_file = file_base + pair[0]
-        self.socket.send_json({
-            'message_type': 'set_flight_filename',
-            'glider': glider,
-            'start': set_timestamp.isoformat(),
-            'filename': flight_file
-        })
-
-        science_file = file_base + pair[1]
-        self.socket.send_json({
-            'message_type': 'set_science_filename',
-            'glider': glider,
-            'start': set_timestamp.isoformat(),
-            'filename': science_file
         })
 
         flight_reader = GliderBDReader(
@@ -83,13 +75,13 @@ class GliderFileProcessor(ProcessEvent):
             flight_reader, science_reader
         )
         for value in merged_reader:
-            self.socket.send_json({
+            socket.send_json({
                 'message_type': 'set_data',
                 'glider': glider,
                 'start': set_timestamp.isoformat(),
                 'data': value
             })
-        self.socket.send_json({
+        socket.send_json({
             'message_type': 'set_end',
             'glider': glider,
             'start': set_timestamp.isoformat(),
@@ -103,7 +95,7 @@ class GliderFileProcessor(ProcessEvent):
             logger.info("File %s closed" % event.pathname)
 
             # Add full path to glider data queue
-            glider_name = event.path[event.path.rfind('/'):]
+            glider_name = event.path[event.path.rfind('/')+1:]
             if glider_name not in self.glider_data:
                 self.glider_data[glider_name] = {}
                 self.glider_data[glider_name]['path'] = event.path
@@ -122,9 +114,13 @@ class GliderFileProcessor(ProcessEvent):
                     checkFile = event.name[:-3] + pair[0]
 
                 if checkFile in self.glider_data[glider_name]['files']:
-                    self.publish_segment_pair(
-                        glider_name, event.path, event.name[:-3], pair
-                    )
+                    try:
+                        self.publish_segment_pair(
+                            glider_name, event.path, event.name[:-3], pair
+                        )
+                    except Exception, e:
+                        logger.error("Error processing pair %s: %s"
+                                     % (event.name[:-3], e))
 
     def process_IN_CLOSE_WRITE(self, event):
         self.check_for_pair(event)
