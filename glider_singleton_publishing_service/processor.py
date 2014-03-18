@@ -129,3 +129,9 @@ class GliderFileProcessor(ProcessEvent):
 
     def process_IN_CLOSE(self, event):
         self.check_for_pair(event)
+
+    def process_IN_CREATE(self, event):
+        self.check_for_pair(event)
+
+    def process_IN_MODIFY(self, event):
+        self.check_for_pair(event)
