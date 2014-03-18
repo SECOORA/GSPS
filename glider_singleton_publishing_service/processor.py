@@ -127,8 +127,5 @@ class GliderFileProcessor(ProcessEvent):
                         logger.error("Error processing pair %s: %s"
                                      % (event.name[:-3], e))
 
-    def process_IN_CLOSE_WRITE(self, event):
-        self.check_for_pair(event)
-
-    def process_IN_CLOSE_NOWRITE(self, event):
+    def process_IN_CLOSE(self, event):
         self.check_for_pair(event)
