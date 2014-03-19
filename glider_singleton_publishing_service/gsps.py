@@ -25,8 +25,8 @@ from pyinotify import (
     WatchManager,
     Notifier,
     NotifierError,
-    IN_CREATE,
-    IN_CLOSE_WRITE
+    IN_CLOSE_WRITE,
+    IN_MOVED_TO
 )
 
 from glider_singleton_publishing_service.processor import GliderFileProcessor
@@ -78,7 +78,7 @@ def main():
         monitor_path = monitor_path[:-1]
 
     wm = WatchManager()
-    mask = IN_CREATE | IN_CLOSE_WRITE
+    mask = IN_MOVED_TO | IN_CLOSE_WRITE
     wdd = wm.add_watch(args.glider_directory_path, mask,
                        rec=True, auto_add=True)
 

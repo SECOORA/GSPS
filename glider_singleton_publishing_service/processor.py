@@ -127,11 +127,19 @@ class GliderFileProcessor(ProcessEvent):
                         logger.error("Error processing pair %s: %s"
                                      % (event.name[:-3], e))
 
+    def valid_extension(self, name):
+        extension = name[name.rfind('.')+1:]
+        for pair in FLIGHT_SCIENCE_PAIRS:
+            if extension == pair[0] or extension == pair[1]:
+                return True
+
+        logger.error("Unrecognized file extension for event: %s" % extension)
+        return False
+
     def process_IN_CLOSE(self, event):
-        self.check_for_pair(event)
+        if self.valid_extension(event.name):
+            self.check_for_pair(event)
 
-    def process_IN_CREATE(self, event):
-        self.check_for_pair(event)
-
-    def process_IN_MODIFY(self, event):
-        self.check_for_pair(event)
+    def process_IN_MOVED_TO(self, event):
+        if self.valid_extension(event.name):
+            self.check_for_pair(event)
