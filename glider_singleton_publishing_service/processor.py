@@ -20,6 +20,7 @@ import logging
 logger = logging.getLogger("GSPS")
 
 import zmq
+import time
 from datetime import datetime
 
 from glider_binary_data_reader.glider_bd_reader import (
@@ -88,6 +89,7 @@ class GliderFileProcessor(ProcessEvent):
                 'start': set_timestamp.isoformat(),
                 'data': value
             })
+            time.sleep(0.01)
         socket.send_json({
             'message_type': 'set_end',
             'glider': glider,
