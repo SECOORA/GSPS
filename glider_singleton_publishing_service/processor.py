@@ -23,7 +23,7 @@ import zmq
 import time
 from datetime import datetime
 
-from glider_binary_data_reader.glider_bd_reader import (
+from glider_binary_data_reader import (
     GliderBDReader,
     MergedGliderBDReader
 )
