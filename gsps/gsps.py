@@ -29,7 +29,7 @@ from pyinotify import (
     IN_MOVED_TO
 )
 
-from glider_singleton_publishing_service.processor import GliderFileProcessor
+from gsps.processor import GliderFileProcessor
 
 
 def main():
