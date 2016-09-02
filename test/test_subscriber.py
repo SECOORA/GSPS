@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Tests the gsps publisher by subscribing to the queue.
 # Prints any messages received
 #
@@ -6,10 +8,15 @@
 # College of Marine Science
 # Ocean Technology Group
 
+import sys
 import argparse
+
 import zmq
 
-import sys
+import logging
+from gsps import logger
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 
 def main():
@@ -23,12 +30,13 @@ def main():
 
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:%d" % args.port)
-    socket.setsockopt(zmq.SUBSCRIBE, '')
+    socket.connect('tcp://127.0.0.1:{:d}'.format(args.port))
+    logger.info("Listening...")
+    socket.setsockopt(zmq.SUBSCRIBE, b'')
 
     while True:
         try:
-            print socket.recv_json()
+            logger.info(socket.recv_json())
         except KeyboardInterrupt:
             break
 

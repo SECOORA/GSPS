@@ -1,12 +1,19 @@
+#!/usr/bin/env python
+
 from distutils.core import setup
 
 setup(
-    name='Glider Singleton Publishing Service',
+    name='gsps',
     version='1.0',
     author='Michael Lindemuth',
     author_email='mlindemu@usf.edu',
-    packages=['glider_singleton_publishing_service'],
+    packages=['gsps'],
+    install_requires=[
+        'gbdr',
+        'pyinotify',
+        'pyzmq',
+    ],
     scripts=[
-        'glider_singleton_publishing_service/gsps.py',
+        'gsps/cli.py',
     ]
 )

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Announces data from flight and science files as merged
 # JSON documents to ZeroMQ
 #
@@ -12,63 +14,58 @@
 # College of Marine Science
 # Ocean Technology Group
 
-from pyinotify import(
-    ProcessEvent
-)
-
-import logging
-logger = logging.getLogger("GSPS")
-
+import os
 import zmq
 import time
 from datetime import datetime
 
-from glider_binary_data_reader import (
+from pyinotify import(
+    ProcessEvent
+)
+
+from gbdr import (
     GliderBDReader,
     MergedGliderBDReader
 )
+
+from gsps import logger
 
 
 FLIGHT_SCIENCE_PAIRS = [('dbd', 'ebd'), ('sbd', 'tbd'), ('mbd', 'nbd')]
 
 
 class GliderFileProcessor(ProcessEvent):
-    def __init__(self, port=8008):
-        ProcessEvent.__init__(self)
-        self.glider_data = {}
 
-        self.port = port
+    def my_init(self, zmq_url):
+        self.zmq_url = zmq_url
+
+        self.glider_data = {}
 
     def publish_segment_pair(self, glider, path, file_base, pair):
         # Create ZMQ context and socket for publishing files
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
-        socket.bind("tcp://*:%d" % self.port)
+        socket.bind(self.zmq_url)
 
-        segment_id = int(file_base[file_base.rfind('-')+1:file_base.find('.')])
+        segment_id = int(file_base[file_base.rfind('-') + 1:file_base.find('.')])
 
         logger.info(
-            "Publishing glider %s segment %d data in %s named %s pair %s"
-            % (glider, segment_id, path, file_base, pair)
+            "Publishing glider {0} segment {1:d} data in {2} named {3} pair {4}".format(
+                glider,
+                segment_id,
+                path,
+                file_base,
+                pair
+            )
         )
 
         set_timestamp = datetime.utcnow()
         flight_file = file_base + pair[0]
         science_file = file_base + pair[1]
 
-        flight_reader = GliderBDReader(
-            path,
-            pair[0],
-            [flight_file]
-        )
-        science_reader = GliderBDReader(
-            path,
-            pair[1],
-            [science_file]
-        )
-        merged_reader = MergedGliderBDReader(
-            flight_reader, science_reader
-        )
+        flight_reader = GliderBDReader([os.path.join(path, flight_file)])
+        science_reader = GliderBDReader([os.path.join(path, science_file)])
+        merged_reader = MergedGliderBDReader(flight_reader, science_reader)
 
         socket.send_json({
             'message_type': 'set_start',
@@ -102,7 +99,7 @@ class GliderFileProcessor(ProcessEvent):
     def check_for_pair(self, event):
         if len(event.name) > 0 and event.name[0] is not '.':
             # Add full path to glider data queue
-            glider_name = event.path[event.path.rfind('/')+1:]
+            glider_name = event.path[event.path.rfind('/') + 1:]
             if glider_name not in self.glider_data:
                 self.glider_data[glider_name] = {}
                 self.glider_data[glider_name]['path'] = event.path
@@ -125,12 +122,13 @@ class GliderFileProcessor(ProcessEvent):
                         self.publish_segment_pair(
                             glider_name, event.path, event.name[:-3], pair
                         )
-                    except Exception, e:
-                        logger.error("Error processing pair %s: %s"
-                                     % (event.name[:-3], e))
+                    except BaseException:
+                        logger.exception(
+                            'Error processing pair {}'.format(event.name[:-3])
+                        )
 
     def valid_extension(self, name):
-        extension = name[name.rfind('.')+1:]
+        extension = name[name.rfind('.') + 1:]
         for pair in FLIGHT_SCIENCE_PAIRS:
             if extension == pair[0] or extension == pair[1]:
                 return True

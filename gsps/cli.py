@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Monitors a glider directory for changes.
 # When a change occurs, it is published to a ZMQ queue.
@@ -15,11 +15,9 @@
 # College of Marine Science
 # Ocean Technology Group
 
-import argparse
 import sys
 import signal
-import logging
-logger = logging.getLogger("GSPS")
+import argparse
 
 from pyinotify import (
     WatchManager,
@@ -30,6 +28,11 @@ from pyinotify import (
 )
 
 from gsps.processor import GliderFileProcessor
+
+import logging
+from gsps import logger
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 
 def main():
@@ -42,10 +45,9 @@ def main():
         help="Path to configuration file"
     )
     parser.add_argument(
-        "--zmq_port",
+        "--zmq_url",
         help="Port to publish ZMQ messages on.  8008 by default.",
-        type=int,
-        default=8008
+        default='tcp://127.0.0.1:8008'
     )
     parser.add_argument(
         "--daemonize",
@@ -56,7 +58,7 @@ def main():
     parser.add_argument(
         "--pid_file",
         help="Where to look for and put the PID file",
-        default="./gsps.pid"
+        default="/tmp/gsps.pid"
     )
     parser.add_argument(
         "--log_file",
@@ -65,41 +67,36 @@ def main():
     )
     args = parser.parse_args()
 
-    # Setup logger
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(name)s "
-                                  "- %(levelname)s - %(message)s")
-    log_handler = logging.FileHandler(args.log_file)
-    log_handler.setFormatter(formatter)
-    logger.addHandler(log_handler)
-
     monitor_path = args.glider_directory_path
     if monitor_path[-1] == '/':
         monitor_path = monitor_path[:-1]
 
     wm = WatchManager()
     mask = IN_MOVED_TO | IN_CLOSE_WRITE
-    wdd = wm.add_watch(args.glider_directory_path, mask,
-                       rec=True, auto_add=True)
+    wdd = wm.add_watch(
+        args.glider_directory_path,
+        mask,
+        rec=True,
+        auto_add=True
+    )
 
-    processor = GliderFileProcessor(args.zmq_port)
+    processor = GliderFileProcessor(zmq_url=args.zmq_url)
     notifier = Notifier(wm, processor)
 
     def handler(signum, frame):
         wm.rm_watch(wdd.values())
         processor.stop()
         notifier.stop()
-
     signal.signal(signal.SIGTERM, handler)
 
     try:
-        logger.info("Starting")
+        logger.info("Starting...")
         notifier.loop(daemonize=args.daemonize, pid_file=args.pid_file)
-    except NotifierError, err:
-        logger.error('Unable to start notifier loop: %s' % err)
+    except NotifierError:
+        logger.exception('Unable to start notifier loop')
         return 1
 
-    logger.info("Glider System Publication Service Exited Successfully")
+    logger.info("GSPS Exited Successfully")
     return 0
 
 if __name__ == '__main__':
