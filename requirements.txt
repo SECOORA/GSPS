@@ -1,0 +1,3 @@
+gbdr>=1.0.1
+pyinotify
+pyzmq

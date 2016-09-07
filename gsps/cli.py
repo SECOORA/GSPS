@@ -15,8 +15,8 @@
 # College of Marine Science
 # Ocean Technology Group
 
+import os
 import sys
-import signal
 import argparse
 
 from pyinotify import (
@@ -37,17 +37,20 @@ logger.addHandler(logging.StreamHandler())
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Monitor a directory for new glider data.  "
+        description="Monitor a directory for new glider data. "
                     "Announce changes via ZMQ."
     )
     parser.add_argument(
-        "glider_directory_path",
-        help="Path to configuration file"
+        "-d",
+        "--data_path",
+        help="Path to Glider data directory",
+        default=os.environ.get('GDB_DATA_DIR')
     )
     parser.add_argument(
         "--zmq_url",
-        help="Port to publish ZMQ messages on.  8008 by default.",
-        default='tcp://127.0.0.1:8008'
+        help='Port to publish ZMQ messages on. '
+             'Default is "tcp://127.0.0.1:44444".',
+        default=os.environ.get('ZMQ_URL', 'tcp://127.0.0.1:44444')
     )
     parser.add_argument(
         "--daemonize",
@@ -55,26 +58,22 @@ def main():
         type=bool,
         default=False
     )
-    parser.add_argument(
-        "--pid_file",
-        help="Where to look for and put the PID file",
-        default="/tmp/gsps.pid"
-    )
-    parser.add_argument(
-        "--log_file",
-        help="Full path of file to log to",
-        default="./gsps.log"
-    )
+
     args = parser.parse_args()
 
-    monitor_path = args.glider_directory_path
+    if not args.data_path:
+        logger.error("Please provide a --data_path attribute or set the GDB_DATA_DIR "
+                     "environmental variable")
+        sys.exit(parser.print_usage())
+
+    monitor_path = args.data_path
     if monitor_path[-1] == '/':
         monitor_path = monitor_path[:-1]
 
     wm = WatchManager()
     mask = IN_MOVED_TO | IN_CLOSE_WRITE
-    wdd = wm.add_watch(
-        args.glider_directory_path,
+    wm.add_watch(
+        args.data_path,
         mask,
         rec=True,
         auto_add=True
@@ -83,15 +82,12 @@ def main():
     processor = GliderFileProcessor(zmq_url=args.zmq_url)
     notifier = Notifier(wm, processor)
 
-    def handler(signum, frame):
-        wm.rm_watch(wdd.values())
-        processor.stop()
-        notifier.stop()
-    signal.signal(signal.SIGTERM, handler)
-
     try:
-        logger.info("Starting...")
-        notifier.loop(daemonize=args.daemonize, pid_file=args.pid_file)
+        logger.info("Watching {}\nPublishing to {}".format(
+            args.data_path,
+            args.zmq_url)
+        )
+        notifier.loop(daemonize=args.daemonize)
     except NotifierError:
         logger.exception('Unable to start notifier loop')
         return 1
