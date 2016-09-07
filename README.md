@@ -57,8 +57,8 @@ The docker image uses `gsps-cli` internally. Set the `ZMQ_URL` variable as neede
 ```bash
 $ docker run -it \
     -name sgs-gsps \
-    -v "ZMQ_URL=tcp://127.0.0.1:9000" \
-    axiom/gsps
+    -e "ZMQ_URL=tcp://127.0.0.1:9000" \
+    axiom/GSPS
 Watching /data
 Publishing to tcp://127.0.0.1:9000
 ```
