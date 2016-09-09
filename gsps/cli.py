@@ -30,12 +30,15 @@ from pyinotify import (
 from gsps.processor import GliderFileProcessor
 
 import logging
-from gsps import logger
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
+logging.captureWarnings(True)
+logger = logging.getLogger(__name__)
 
 
 def main():
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+    logging.getLogger('py.warnings').setLevel(logging.ERROR)
+
     parser = argparse.ArgumentParser(
         description="Monitor a directory for new glider data. "
                     "Announce changes via ZMQ."

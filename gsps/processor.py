@@ -23,13 +23,13 @@ from pyinotify import(
     ProcessEvent
 )
 
-from gbdr import (
+from gutils.gbdr import (
     GliderBDReader,
     MergedGliderBDReader
 )
 
-from gsps import logger
-
+import logging
+logger = logging.getLogger(__name__)
 
 FLIGHT_SCIENCE_PAIRS = [('dbd', 'ebd'), ('sbd', 'tbd'), ('mbd', 'nbd')]
 
@@ -39,17 +39,17 @@ class GliderFileProcessor(ProcessEvent):
     def my_init(self, zmq_url):
         self.zmq_url = zmq_url
 
+        # Create ZMQ context and socket for publishing files
+        context = zmq.Context()
+        self.socket = context.socket(zmq.PUB)
+        self.socket.bind(self.zmq_url)
+
         self.glider_data = {}
 
     def publish_segment_pair(self, glider, path, file_base, pair):
-        # Create ZMQ context and socket for publishing files
-        context = zmq.Context()
-        socket = context.socket(zmq.PUB)
-        socket.bind(self.zmq_url)
-
         segment_id = int(file_base[file_base.rfind('-') + 1:file_base.find('.')])
 
-        logger.info(
+        logger.debug(
             "Publishing glider {0} segment {1:d} data in {2} named {3} pair {4}".format(
                 glider,
                 segment_id,
@@ -67,7 +67,7 @@ class GliderFileProcessor(ProcessEvent):
         science_reader = GliderBDReader([os.path.join(path, science_file)])
         merged_reader = MergedGliderBDReader(flight_reader, science_reader)
 
-        socket.send_json({
+        self.socket.send_json({
             'message_type': 'set_start',
             'start': set_timestamp.isoformat(),
             'flight_type': pair[0],
@@ -80,14 +80,14 @@ class GliderFileProcessor(ProcessEvent):
         })
 
         for value in merged_reader:
-            socket.send_json({
+            self.socket.send_json({
                 'message_type': 'set_data',
                 'glider': glider,
                 'start': set_timestamp.isoformat(),
                 'data': value
             })
             time.sleep(0.01)
-        socket.send_json({
+        self.socket.send_json({
             'message_type': 'set_end',
             'glider': glider,
             'start': set_timestamp.isoformat(),

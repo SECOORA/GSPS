@@ -1,0 +1,27 @@
+version: '2'
+
+services:
+
+  gsps:
+    build:
+        context: ..
+        dockerfile: Dockerfile
+    environment:
+      ZMQ_URL: "tcp://*:44444"
+      GDB_DATA_DIR: /data
+    volumes:
+      - "./data:/data:ro"
+
+  gsps2nc:
+    build:
+        context: ..
+        dockerfile: Dockerfile-gsps2nc
+    environment:
+      ZMQ_URL: "tcp://gsps:44444"
+    volumes:
+      - "./data:/data:ro"
+      - "./config:/config:ro"
+      - "./output:/output"
+    depends_on:
+      - gsps
+    entrypoint: "docker/wait.sh gsps:44444 --strict --timeout=30 -- /sbin/my_init"

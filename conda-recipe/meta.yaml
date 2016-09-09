@@ -1,6 +1,6 @@
 package:
     name: gsps
-    version: "1.0.1"
+    version: "1.1.0"
 
 source:
     path: ../
@@ -15,19 +15,26 @@ requirements:
         - setuptools
     run:
         - python
-        - gbdr
         - pyinotify
         - pyzmq
+        - gutils
 
 test:
+    requires:
+        - pytest
     imports:
         - gsps
         - gsps.cli
         - gsps.processor
+        - gsps.nc
+        - gsps.nc.cli
+        - gsps.nc.generators
     commands:
         - gsps-cli -h
+        - gsps2nc -h
 
 about:
     home: https://github.com/axiom-data-science/GSPS
     license: MIT License
+    license_file: LICENSE
     summary: 'Watches a directory for new *db flight/science files and publishes the data to a ZeroMQ socket.'

@@ -19,15 +19,22 @@ reqs = [line.strip() for line in open('requirements.txt') if not line.startswith
 setup(
     name='gsps',
     version=version(),
-    description='Glider Singleton Publishing Service',
+    description='Watches a directory for new *db flight/science files and '
+                'publishes the data to a ZeroMQ socket.',
     long_description=readme(),
     author='Michael Lindemuth',
     author_email='mlindemu@usf.edu',
-    packages=['gsps'],
+    packages=[
+        'gsps',
+        'gsps.nc'
+    ],
     install_requires=reqs,
     url='https://github.com/axiom-data-science/GSPS',
     entry_points = {
-        'console_scripts': ['gsps-cli=gsps.cli:main'],
+        'console_scripts': [
+            'gsps-cli=gsps.cli:main',
+            'gsps2nc=gsps.nc.cli:main'
+        ],
     },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
