@@ -52,7 +52,7 @@ COPY docker/gsps /etc/service/gsps/run
 
 EXPOSE 44444
 
-ENV GSPS_VERSION 1.0.1
+ENV GSPS_VERSION 1.2.1
 
 ENV GDB_DATA_DIR /data
 VOLUME $GDB_DATA_DIR
