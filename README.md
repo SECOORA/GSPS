@@ -1,5 +1,7 @@
 # Glider Singleton Publishing Service (GSPS)
 
+[![Build Status](https://travis-ci.org/SECOORA/GSPS.svg?branch=master)](https://travis-ci.org/SECOORA/GSPS)
+
 Watches a directory for new *db flight/science files and publishes the data to a ZeroMQ socket. Includes a command line tool to listen to the ZeroMQ socket and write netCDF files.
 
 
